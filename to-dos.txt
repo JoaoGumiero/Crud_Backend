@@ -1,0 +1,9 @@
+-  Make connection with a postgree/sql database. ()
+	- Make the migrations (Done)
+		- Undestand them too (Done)
+        - Implement a delete counter within the Delete method in DB.go, if the counter is == 0, then no delete has happened (Pending)
+	- Transactions (Next)
+	- Improve the Handler with the new postgres connection (Next)
+- Swagger (Pending) - Swag lib
+- Docker (Pending)
+- IA to categorize those tickets. (Pending) (Later feature)
