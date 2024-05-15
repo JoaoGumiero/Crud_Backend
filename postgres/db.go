@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	t "github.com/JoaoGumiero/Crud_Backend/Ticket"
+	t "github.com/JoaoGumiero/Crud_Backend/ticket"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
