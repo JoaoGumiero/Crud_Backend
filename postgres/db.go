@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 
 	t "github.com/JoaoGumiero/Crud_Backend/ticket"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -25,32 +27,46 @@ func (r *TicketDAO) CreateTicketDAO(ctx context.Context, NewTicket t.Ticket) (*t
 	return &NewTicket, nil
 }
 
-func (r *TicketDAO) UpdateTicketDAO(ctx context.Context, NewTicket t.Ticket, id string) (*t.Ticket, error) {
-	query := `UPDATE Tickets SET title = $2, analysis_date = $3, solving_date = $4, description = $5, sende_queue = $6, reciever_queue = $7, status = $8 Where id = $1`
-	err := r.db.QueryRow(ctx, query, id, NewTicket.Title, NewTicket.Analysis_Date, NewTicket.Solving_Date, NewTicket.Description, NewTicket.SenderQeue, NewTicket.RecieverQeue, NewTicket.Status).Scan(&NewTicket.ID)
+func (r *TicketDAO) UpdateTicketDAO(ctx context.Context, NewTicket t.Ticket, id int) (*t.Ticket, error) {
+	query := `UPDATE Tickets SET title = $2, analysis_date = $3, solving_date = $4, description = $5, sender_queue = $6, reciever_queue = $7, status = $8 Where id = $1`
+	err := r.db.QueryRow(ctx, query, id, NewTicket.Title, NewTicket.Analysis_Date, NewTicket.Solving_Date, NewTicket.Description, NewTicket.SenderQueue, NewTicket.RecieverQueue, NewTicket.Status).Scan(&NewTicket.ID)
 	if err != nil {
 		return nil, err
 	}
 	return &NewTicket, nil
 }
 
-func (r *TicketDAO) GetTicketByIdDAO(ctx context.Context, id string) (*t.Ticket, error) {
+func (r *TicketDAO) GetTicketByIdDAO(ctx context.Context, id int) (*t.Ticket, error) {
 	var ticket t.Ticket
 	query := `SELECT * FROM Ticket Where ID = $1`
-	err := r.db.QueryRow(ctx, query, id).Scan(&ticket.ID, &ticket.Title, &ticket.Analysis_Date, &ticket.Solving_Date, &ticket.Description, &ticket.SenderQeue, &ticket.RecieverQeue, &ticket.Status)
+	err := r.db.QueryRow(ctx, query, id).Scan(&ticket.ID, &ticket.Title, &ticket.Analysis_Date, &ticket.Solving_Date, &ticket.Description, &ticket.SenderQueue, &ticket.RecieverQueue, &ticket.Status)
 	if err != nil {
 		return nil, err
 	}
 	return &ticket, err
 }
 
-func (r *TicketDAO) GetAllTicketsDAO(ctx context.Context) error {
+func (r *TicketDAO) GetAllTicketsDAO(ctx context.Context) ([]t.Ticket, error) {
 	query := `SELECT * FROM Tickets`
-	_, err := r.db.Query(ctx, query)
+	rows, err := r.db.Query(ctx, query)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	defer rows.Close()
+
+	var tickets []t.Ticket
+	for rows.Next() {
+		var t t.Ticket
+		err := rows.Scan(&t.ID, &t.Title, &t.Analysis_Date,
+			&t.Solving_Date, &t.Description, &t.SenderQueue, &t.RecieverQueue,
+			&t.Status)
+		if err != nil {
+			log.Fatalf("Error Scanning Tickets", http.StatusBadRequest)
+			return nil, err
+		}
+		tickets = append(tickets, t)
+	}
+	return tickets, nil
 }
 
 func (r *TicketDAO) DeleteTicketDAO(ctx context.Context, id string) error {
