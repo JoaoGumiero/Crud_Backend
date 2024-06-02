@@ -27,8 +27,7 @@ func main() {
 	defer Dbpool.Close()
 
 	// New server and uploading the routes.
-	mux := http.NewServeMux()
-	api.UploadRoutes(mux)
+	mux := api.UploadRoutes(Dbpool)
 
 	log.Println("Listening on port :8080...")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
