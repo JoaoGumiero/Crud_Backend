@@ -8,19 +8,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/JoaoGumiero/Crud_Backend/postgres"
 	"github.com/JoaoGumiero/Crud_Backend/ticket"
 )
 
-// Create a global map data structure to store tickets in memory and a mutex for concurrency read/write issues.
-var (
-	tickets = make(map[string]ticket.Ticket)
-	mux     sync.RWMutex
-)
-
-// Util for get id from path
+// Util for get the Id from path
 func getIdFromPath(path string) (int, error) {
 	parts := strings.Split(path, "/")
 	if len(parts) < 3 {
@@ -29,13 +22,13 @@ func getIdFromPath(path string) (int, error) {
 	return strconv.Atoi(parts[2])
 }
 
-// Function to retrieve all the tickets within the map.
+// Function to retrieve all the tickets from DB
 func GetTickets(t postgres.TicketDAO) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Print("Get all Tickets Handler")
 		if r.Method != http.MethodGet {
-			log.Fatalf("Method not allowed %d", http.StatusBadRequest)
-			http.Error(w, "Method not allowed", http.StatusBadRequest)
+			log.Fatalf("Method not allowed %d", http.StatusMethodNotAllowed)
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 		tickets, err := t.GetAllTicketsDAO(r.Context())
 		if err != nil {
@@ -53,12 +46,13 @@ func GetTickets(t postgres.TicketDAO) http.HandlerFunc {
 	}
 }
 
+// Function to add a Ticket to the DB
 func AddTicket(t postgres.TicketDAO) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Print("Add Tickets Handler")
 		if r.Method != http.MethodPost {
-			log.Fatalf("Method not allowed %d", http.StatusBadRequest)
-			http.Error(w, "Method not allowed", http.StatusBadRequest)
+			log.Fatalf("Method not allowed %d", http.StatusMethodNotAllowed)
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 		var ticket ticket.Ticket
 		err := json.NewDecoder(r.Body).Decode(&ticket)
@@ -82,12 +76,13 @@ func AddTicket(t postgres.TicketDAO) http.HandlerFunc {
 	}
 }
 
+// Function to retrieve a Ticket by the Id
 func GetTicketById(t postgres.TicketDAO) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Print("Get Tickets Handler by Id")
 		if r.Method != http.MethodGet {
-			log.Fatalf("Method not allowed %d", http.StatusBadRequest)
-			http.Error(w, "Method not allowed", http.StatusBadRequest)
+			log.Fatalf("Method not allowed %d", http.StatusMethodNotAllowed)
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 		id, err := getIdFromPath(r.URL.Path)
 		if err != nil {
@@ -115,12 +110,13 @@ func GetTicketById(t postgres.TicketDAO) http.HandlerFunc {
 	}
 }
 
+// Function to update a Ticket by the Id
 func UpdateTicket(t postgres.TicketDAO) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Print("Update Handler by Id")
 		if r.Method != http.MethodPut {
-			log.Fatalf("Method not allowed %d", http.StatusBadRequest)
-			http.Error(w, "Method not allowed", http.StatusBadRequest)
+			log.Fatalf("Method not allowed %d", http.StatusMethodNotAllowed)
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 		id, err := getIdFromPath(r.URL.Path)
 		if err != nil {
@@ -128,7 +124,7 @@ func UpdateTicket(t postgres.TicketDAO) http.HandlerFunc {
 			http.Error(w, "Error getting id from Path", http.StatusBadRequest)
 		}
 		var ticket ticket.Ticket
-		if json.Decoder(r.Body).Decode(&ticket); err != nil {
+		if json.NewDecoder(r.Body).Decode(&ticket); err != nil {
 			log.Fatalf("Error decoding body: %d", http.StatusBadRequest)
 			http.Error(w, "Error decoding body", http.StatusBadRequest)
 		}
@@ -145,15 +141,26 @@ func UpdateTicket(t postgres.TicketDAO) http.HandlerFunc {
 	}
 }
 
-func DeleteTicket(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Path[len("/tickets/"):]
-	mux.Lock()
-	defer mux.Unlock()
-	if _, ok := tickets[id]; !ok {
-		http.Error(w, "Not Found", http.StatusMethodNotAllowed)
-		return
+// Function to delete a Ticket by Id
+func DeleteTicket(t postgres.TicketDAO) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Print("Delete Handler by Id")
+		if r.Method != http.MethodDelete {
+			log.Fatalf("Method not allowed %d", http.StatusMethodNotAllowed)
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+		id, err := getIdFromPath(r.URL.Path)
+		if err != nil {
+			log.Fatalf("Error getting id from Path: %d", http.StatusBadRequest)
+			http.Error(w, "Error getting id from Path", http.StatusBadRequest)
+		}
+		t.DeleteTicketDAO(r.Context(), id)
+		if err != nil {
+			// Here i can manage something bcs what if there's no ticket with the ID?
+			log.Fatalf("Error deleting the ticket: %d", http.StatusBadRequest)
+			http.Error(w, "Error deleting the ticket", http.StatusBadRequest)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		log.Print("Ticket delete was succesfull")
 	}
-	delete(tickets, id)
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Ticket deleted successfully"))
 }

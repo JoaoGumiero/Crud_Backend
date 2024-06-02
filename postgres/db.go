@@ -69,7 +69,7 @@ func (r *TicketDAO) GetAllTicketsDAO(ctx context.Context) ([]t.Ticket, error) {
 	return tickets, nil
 }
 
-func (r *TicketDAO) DeleteTicketDAO(ctx context.Context, id string) error {
+func (r *TicketDAO) DeleteTicketDAO(ctx context.Context, id int) error {
 	query := `DELETE * FROM Tickets Where id = $1`
 	_, err := r.db.Exec(ctx, query, id)
 	if err != nil {
